@@ -48,3 +48,8 @@ _region_.tex
 *.RData
 
 # Directories
+
+# Ignore all CSS, WOFF, and JS files in the 'libs' directory and subdirectories
+scripts/first_attempt_files/libs/**/*.css
+scripts/first_attempt_files/libs/**/*.woff
+scripts/first_attempt_files/libs/**/*.js
