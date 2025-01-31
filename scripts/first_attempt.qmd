@@ -1,0 +1,26 @@
+---
+title: "First Attempt at Presentation Script"
+author: "Jack Bienvenue"
+output: html_document
+date: "30 January 2025"
+---
+
+Okay, so we need to try out doing this network analysis.
+
+``` {python}
+#| echo: false
+#| eval: true
+
+# Package Import
+import pandas as pd
+import geopandas as gpd
+
+# Data Import
+```
+
+
+First, let's use a shapefile of the United States to mask out 
+
+``` {python}
+
+```
