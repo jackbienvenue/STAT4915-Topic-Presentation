@@ -1,0 +1,12 @@
+---
+title: "How to Hitchhike the U.S. Railway System"
+subtitle: "Data Science in Action | Spring 2025"
+author: "Jack Bienvenue"
+date: "2024-09-30"
+format:
+  revealjs: 
+    theme: default
+    preview-links: true
+    slide-number: true
+---
+
