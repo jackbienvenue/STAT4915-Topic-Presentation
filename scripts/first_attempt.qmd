@@ -20,6 +20,7 @@ from shapely.geometry import Point, LineString
 import geopandas as gpd
 from sklearn.neighbors import KDTree
 import numpy as np
+import folium
 
 # Data Import
 north_america_rail_shapefile = gpd.read_file('../data/tl_2022_us_rails/tl_2022_us_rails.shp')
@@ -83,6 +84,55 @@ end_node = find_nearest_node(graph, end_point)
 ```
 
 We were able to write a function which takes our input points and finds the nearest node on the graph of the railways. Now, we can input any points we want to get the following optimization function to work.
+
+``` {python}
+# Load the shapefile (adjust the path to where your shapefile is stored)
+north_america_rail_shapefile = gpd.read_file('../data/tl_2022_us_rails/tl_2022_us_rails.shp')
+
+# Create a graph from the shapefile
+graph = nx.Graph()
+for line in north_america_rail_shapefile.geometry:
+    if line.geom_type == 'LineString':  # Ensure the geometry is a LineString
+        for i in range(len(line.coords) - 1):
+            start = line.coords[i]
+            end = line.coords[i + 1]
+            graph.add_edge(start, end, weight=LineString([start, end]).length)
+
+# Extract node positions (latitude, longitude)
+node_positions = {node: (node[1], node[0]) for node in graph.nodes()}
+
+# Create a plot
+fig, ax = plt.subplots(figsize=(10, 10))
+
+# Plot the shapefile for background
+north_america_rail_shapefile.plot(ax=ax, color='lightgray', linewidth=0.5)
+
+# Plot the edges of the graph
+for edge in graph.edges():
+    start, end = edge
+    start_pos = node_positions[start]
+    end_pos = node_positions[end]
+    ax.plot([start_pos[0], end_pos[0]], [start_pos[1], end_pos[1]], color='blue', linewidth=0.5)
+
+# Plot the nodes as scatter points
+node_x = [pos[0] for pos in node_positions.values()]
+node_y = [pos[1] for pos in node_positions.values()]
+ax.scatter(node_x, node_y, color='red', s=10, label='Nodes')
+
+# Optionally, add labels for a few nodes (for clarity)
+for i, (node, pos) in enumerate(node_positions.items()):
+    if i % 1000 == 0:  # Label every 1000th node (or adjust as needed)
+        ax.text(pos[0], pos[1], str(node), fontsize=8, color='black', ha='center')
+
+# Add labels and title
+plt.title("Rail Network Graph", fontsize=14)
+plt.xlabel("Longitude")
+plt.ylabel("Latitude")
+
+# Show the map
+plt.legend()
+plt.show()
+```
 
 ``` {python}
 #| echo: true
