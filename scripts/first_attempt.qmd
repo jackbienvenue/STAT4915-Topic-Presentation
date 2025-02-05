@@ -15,6 +15,11 @@ Okay, so we need to try out doing this network analysis.
 import pandas as pd
 import geopandas as gpd
 import networkx as nx
+import matplotlib.pyplot as plt
+from shapely.geometry import Point, LineString
+import geopandas as gpd
+from sklearn.neighbors import KDTree
+import numpy as np
 
 # Data Import
 north_america_rail_shapefile = gpd.read_file('../data/tl_2022_us_rails/tl_2022_us_rails.shp')
@@ -23,13 +28,6 @@ north_america_rail_shapefile = gpd.read_file('../data/tl_2022_us_rails/tl_2022_u
 ```{python}
 #| echo: false
 #| eval: true
-
-import networkx as nx
-import matplotlib.pyplot as plt
-from shapely.geometry import Point, LineString
-import geopandas as gpd
-from sklearn.neighbors import KDTree
-import numpy as np
 
 # Load the shapefile
 north_america_rail_shapefile = gpd.read_file('../data/tl_2022_us_rails/tl_2022_us_rails.shp')
@@ -73,21 +71,28 @@ def find_nearest_node(graph, point):
     return nearest_node_tuple
 
 # Input your own points for start_node and end_node
-start_point = (-72.249200, 41.810828)  # Example start point LONG/LAT
-end_point = (-122.511619, 37.529203)  # Example end point LONG/LAT
+start_point = (-75.152325, 39.966305)  # Example start point LONG/LAT 
+end_point = (-73.9768, 40.7534)  # Example end point LONG/LAT (Grand Central Station)
+
+# (-72.249200, 41.810828) Austin
+# (-75.152325, 39.966305) Philly (random spot)
 
 # Find the nearest nodes on the network
 start_node = find_nearest_node(graph, start_point)
 end_node = find_nearest_node(graph, end_point)
 ```
 
-# Check if the nearest nodes are in the graph
-if start_node not in graph:
-    raise ValueError(f"Start node {start_node} not found in the graph.")
-if end_node not in graph:
-    raise ValueError(f"End node {end_node} not found in the graph.")
+We were able to write a function which takes our input points and finds the nearest node on the graph of the railways. Now, we can input any points we want to get the following optimization function to work.
 
-# Find the shortest path between the nearest nodes
+``` {python}
+#| echo: true
+#| eval: false
+
+# Swap start_node and end_node to match the graph's node format
+start_node = (start_node[1], start_node[0])  # (longitude, latitude)
+end_node = (end_node[1], end_node[0])  # (longitude, latitude)
+
+# Now find the shortest path between the nearest nodes
 path = nx.shortest_path(graph, start_node, end_node, weight='weight')
 
 # Calculate the length of each segment in the path
