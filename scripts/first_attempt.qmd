@@ -14,13 +14,105 @@ Okay, so we need to try out doing this network analysis.
 # Package Import
 import pandas as pd
 import geopandas as gpd
+import networkx as nx
 
 # Data Import
+north_america_rail_shapefile = gpd.read_file('../data/tl_2022_us_rails/tl_2022_us_rails.shp')
 ```
 
+```{python}
+#| echo: false
+#| eval: true
 
-First, let's use a shapefile of the United States to mask out 
+import networkx as nx
+import matplotlib.pyplot as plt
+from shapely.geometry import Point, LineString
+import geopandas as gpd
+from sklearn.neighbors import KDTree
+import numpy as np
 
-``` {python}
+# Load the shapefile
+north_america_rail_shapefile = gpd.read_file('../data/tl_2022_us_rails/tl_2022_us_rails.shp')
 
+# Create a graph from the shapefile
+graph = nx.Graph()
+for line in north_america_rail_shapefile.geometry:
+    if line.geom_type == 'LineString':  # Ensure the geometry is a LineString
+        for i in range(len(line.coords) - 1):
+            start = line.coords[i]
+            end = line.coords[i + 1]
+            graph.add_edge(start, end, weight=LineString([start, end]).length)
+
+# Check the number of nodes and edges in the graph
+print("Number of nodes in the graph:", graph.number_of_nodes())
+print("Number of edges in the graph:", graph.number_of_edges())
+
+def find_nearest_node(graph, point):
+    nodes = np.array(list(graph.nodes()))  # Convert nodes to a NumPy array
+    tree = KDTree(nodes)  # Create a KDTree from the nodes
+    dist, idx = tree.query([point], k=1)  # Find the nearest node
+    
+    # Inspect what 'nearest_node' looks like
+    nearest_node = nodes[idx[0]]  # Get the nearest node
+    print(f"Nearest node raw output: {nearest_node}")  # Debugging
+    
+    # Ensure that 'nearest_node' is in (longitude, latitude) order
+    if nearest_node.ndim == 2:  # if it's a 2D array (e.g., [[lon, lat]])
+        nearest_node = nearest_node[0]  # Flatten it to [lon, lat]
+        
+    if len(nearest_node) == 2:
+        nearest_node_tuple = (nearest_node[1], nearest_node[0])  # Convert to (latitude, longitude)
+    else:
+        raise ValueError(f"Unexpected node structure: {nearest_node}")
+
+    # Verify the nearest node exists in the graph
+    if tuple(nearest_node) not in graph:
+        raise ValueError(f"Nearest node {tuple(nearest_node)} not found in the graph.")
+
+    print(f"Nearest node to {point}: {nearest_node_tuple}")  # Debugging
+    return nearest_node_tuple
+
+# Input your own points for start_node and end_node
+start_point = (-72.249200, 41.810828)  # Example start point LONG/LAT
+end_point = (-122.511619, 37.529203)  # Example end point LONG/LAT
+
+# Find the nearest nodes on the network
+start_node = find_nearest_node(graph, start_point)
+end_node = find_nearest_node(graph, end_point)
 ```
+
+# Check if the nearest nodes are in the graph
+if start_node not in graph:
+    raise ValueError(f"Start node {start_node} not found in the graph.")
+if end_node not in graph:
+    raise ValueError(f"End node {end_node} not found in the graph.")
+
+# Find the shortest path between the nearest nodes
+path = nx.shortest_path(graph, start_node, end_node, weight='weight')
+
+# Calculate the length of each segment in the path
+segment_lengths = []
+for i in range(len(path) - 1):
+    segment = LineString([path[i], path[i + 1]])
+    segment_lengths.append(segment.length)
+
+# Plot the shapefile
+north_america_rail_shapefile.plot()
+
+# Plot the path
+x, y = zip(*path)
+plt.plot(x, y, color='red')
+
+# Annotate the start and end points
+plt.scatter(*start_point, color='green', label='Start Point')
+plt.scatter(*end_point, color='blue', label='End Point')
+plt.scatter(*start_node, color='orange', label='Nearest Start Node')
+plt.scatter(*end_node, color='purple', label='Nearest End Node')
+
+plt.legend()
+plt.show()
+
+# Print the segment lengths
+print("Segment lengths:", segment_lengths)
+```
+
