@@ -1,0 +1,9 @@
+---
+title: "Processing and Visualizing Weather Data"
+author: "Jack Bienvenue"
+format: revealjs
+revealjs-theme: "simple"   # optional, choose a theme
+revealjs-transition: "fade" # optional, choose a transition effect
+highlight-style: "github"  # optional, code highlighting style
+footer: "Your Footer Text" # optional, footer content
+---
