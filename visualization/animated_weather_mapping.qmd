@@ -1,0 +1,28 @@
+---
+title: Animated Weather Mapping for ECMWF
+author: Jack Bienvenue
+date: 8 Februrary 2025
+---
+
+In this file, we will experiment with creating dynamic/ animated weather maps for the state of Connecticut using weather data we retrieved and cleaned from the European Center for Medium-Range Weather Forecasting.
+
+``` {python}
+#| echo: false
+#| eval: true
+
+# Package Import:
+
+import pandas as pd
+
+# Data Connection:
+
+
+```
+
+
+
+``` {python}
+#| echo: false
+#| eval: true
+
+```
