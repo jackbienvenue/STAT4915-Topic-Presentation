@@ -51,7 +51,17 @@ for csv_file in os.listdir(csv_folder_path):
 
 gdf_all_weather = pd.concat(weather_data_gdfs, ignore_index=True)
 
-print(gdf_all_weather)
+# Ensure 'time' column is in datetime format
+gdf_all_weather['time'] = pd.to_datetime(gdf_all_weather['time'], errors='coerce')
+
+# Now you can apply the .dt accessor
+gdf = gdf_all_weather[(gdf_all_weather['time'].dt.year >= 2020) & (gdf_all_weather['time'].dt.year <= 2023)]
+
+start_date = '2022-01-01'
+end_date = '2022-01-14'
+
+gdf = gdf[(gdf_all_weather['time'] >= start_date) & (gdf_all_weather['time'] <= end_date)]
+
 ```
 
 Before we begin mapping, we have to perform a spatial join to unify the data we have about the weather trends with the shapefiles we have created for the grid cells which cover the state of Connecticut. 
@@ -63,9 +73,9 @@ Now, we can move onto mapping and building our animation!
 #| eval: true
 
 
-fig = px.choropleth_mapbox(gdf_all_weather,
-                           geojson=gdf_all_weather.geometry,
-                           locations=gdf_all_weather.index,
+fig = px.choropleth_mapbox(gdf,
+                           geojson=gdf.geometry,
+                           locations=gdf.index,
                            color="t2m",  # This could be any numeric value you want to show
                            hover_name="FID",
                            animation_frame="time",  # Time-based animation
