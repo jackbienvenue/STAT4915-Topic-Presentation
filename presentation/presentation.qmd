@@ -5,5 +5,32 @@ format: revealjs
 revealjs-theme: "simple"   # optional, choose a theme
 revealjs-transition: "fade" # optional, choose a transition effect
 highlight-style: "github"  # optional, code highlighting style
-footer: "Your Footer Text" # optional, footer content
+footer: "Jack Bienvenue | STAT4915" # optional, footer content
 ---
+
+# Sourcing Weather Data
+
+---
+
+## Source
+
+---
+
+## A New File Type: "*.GRIB*"
+
+---
+
+
+# Building Animated Weather Maps in Python
+
+---
+
+## Introducing the *Maplapse* package
+
+
+
+---
+
+# Scholarly References
+
+# Image Credits

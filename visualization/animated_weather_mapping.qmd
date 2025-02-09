@@ -13,16 +13,37 @@ In this file, we will experiment with creating dynamic/ animated weather maps fo
 # Package Import:
 
 import pandas as pd
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import 
 
 # Data Connection:
+
+    # Shapefile import:
+
+shapefile_path = "../data/grid_cell_shapefile/grid_cells.shp"
+
+    # Dataframe with weather data folder import:
 
 
 ```
 
-
+Before we begin mapping, we have to unify the data we have about the weather trends with the shapefiles we have created for the grid cells which cover the state of Connecticut. 
 
 ``` {python}
 #| echo: false
 #| eval: true
+
+
+
+```
+
+Now, we can move onto mapping and building our animation!
+
+``` {python}
+#| echo: false
+#| eval: true
+
+
 
 ```
