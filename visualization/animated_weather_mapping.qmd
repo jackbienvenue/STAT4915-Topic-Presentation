@@ -15,30 +15,46 @@ In this file, we will experiment with creating dynamic/ animated weather maps fo
 import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
-import 
+import os
+from shapely.geometry import Point
+import plotly.express as px
 
 # Data Connection:
 
     # Shapefile import:
 
 shapefile_path = "../data/grid_cell_shapefile/grid_cells.shp"
+gdf_grid_cells = gpd.read_file(shapefile_path)
+gdf_grid_cells = gdf_grid_cells.to_crs("EPSG:26986")
 
     # Dataframe with weather data folder import:
 
-csv_folder_path = 'path_to_your_csv_folder'
+csv_folder_path = '../data/individual_csvs_daily'
 weather_data_gdfs = []
 
+for csv_file in os.listdir(csv_folder_path):
+    if csv_file.endswith('.csv'):
+        # Load the CSV
+        df = pd.read_csv(os.path.join(csv_folder_path, csv_file))
+        
+        # Create geometry (Point from lat/lon)
+        geometry = [Point(lon, lat) for lon, lat in zip(df['longitude'], df['latitude'])]
+        
+        # Convert to GeoDataFrame
+        gdf_weather = gpd.GeoDataFrame(df, geometry=geometry, crs="EPSG:26986")
+        
+        # Perform a spatial join with the grid cells shapefile
+        gdf_joined = gpd.sjoin(gdf_weather, gdf_grid_cells, how="left", predicate="within")
+        
+        # Add the joined GeoDataFrame to the list
+        weather_data_gdfs.append(gdf_joined)
+
+gdf_all_weather = pd.concat(weather_data_gdfs, ignore_index=True)
+
+print(gdf_all_weather)
 ```
 
-Before we begin mapping, we have to unify the data we have about the weather trends with the shapefiles we have created for the grid cells which cover the state of Connecticut. 
-
-``` {python}
-#| echo: false
-#| eval: true
-
-
-
-```
+Before we begin mapping, we have to perform a spatial join to unify the data we have about the weather trends with the shapefiles we have created for the grid cells which cover the state of Connecticut. 
 
 Now, we can move onto mapping and building our animation!
 
@@ -47,5 +63,15 @@ Now, we can move onto mapping and building our animation!
 #| eval: true
 
 
+fig = px.choropleth_mapbox(gdf_all_weather,
+                           geojson=gdf_all_weather.geometry,
+                           locations=gdf_all_weather.index,
+                           color="t2m",  # This could be any numeric value you want to show
+                           hover_name="FID",
+                           animation_frame="time",  # Time-based animation
+                           color_continuous_scale="Viridis",  # Customize color scale
+                           mapbox_style="carto-positron",  # Map style
+                           title="Grid of Polygons with Time Slider")
 
+fig.show()
 ```
