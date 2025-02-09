@@ -6,6 +6,7 @@ date: 8 Februrary 2025
 
 In this file, we will experiment with creating dynamic/ animated weather maps for the state of Connecticut using weather data we retrieved and cleaned from the European Center for Medium-Range Weather Forecasting.
 
+Let's begin by checking our grid cells and ensuring that they are loaded in properly:
 ``` {python}
 #| echo: false
 #| eval: true
@@ -18,6 +19,8 @@ import matplotlib.pyplot as plt
 import os
 from shapely.geometry import Point
 import plotly.express as px
+import folium # Printing maps for debugging stages
+from folium import GeoJson
 
 # Data Connection:
 
@@ -30,8 +33,30 @@ gdf_grid_cells = gdf_grid_cells.to_crs("EPSG:26986")
     # Dataframe with weather data folder import:
 
 csv_folder_path = '../data/individual_csvs_daily'
+# Load grid cells shapefile once, outside the loop
+shapefile_path = "../data/grid_cell_shapefile/grid_cells.shp"
+gdf_grid_cells = gpd.read_file(shapefile_path)
+gdf_grid_cells = gdf_grid_cells.to_crs("EPSG:26986")
+
 weather_data_gdfs = []
 
+
+##### DEBUGGING CHECK - GRID CELL MAP:
+
+m = folium.Map(location=[41.6032, -73.0877], zoom_start=8)
+# Convert the grid cell GeoDataFrame to GeoJSON format
+geojson_data = gdf_grid_cells.to_json()
+# Add the GeoJSON data (grid cells) to the Folium map
+GeoJson(geojson_data, name="Grid Cells").add_to(m)
+# Optional: Add a layer control for toggling between different map layers
+folium.LayerControl().add_to(m)
+# Save the map to an HTML file
+m.save('grid_cells_CT_map.html')
+# To display the map in a Jupyter notebook (if running in one):
+m
+```
+
+# Iterate through the CSV files and load weather data
 for csv_file in os.listdir(csv_folder_path):
     if csv_file.endswith('.csv'):
         # Load the CSV
@@ -43,12 +68,13 @@ for csv_file in os.listdir(csv_folder_path):
         # Convert to GeoDataFrame
         gdf_weather = gpd.GeoDataFrame(df, geometry=geometry, crs="EPSG:26986")
         
-        # Perform a spatial join with the grid cells shapefile
+        # Perform the spatial join only once
         gdf_joined = gpd.sjoin(gdf_weather, gdf_grid_cells, how="left", predicate="within")
         
         # Add the joined GeoDataFrame to the list
         weather_data_gdfs.append(gdf_joined)
 
+# Concatenate all the joined dataframes into one
 gdf_all_weather = pd.concat(weather_data_gdfs, ignore_index=True)
 
 # Ensure 'time' column is in datetime format
@@ -70,18 +96,32 @@ Now, we can move onto mapping and building our animation!
 
 ``` {python}
 #| echo: false
-#| eval: true
+#| eval: false
 
+# Convert the 'time' column to string to make it JSON serializable
+gdf['time'] = gdf['time'].dt.strftime('%Y-%m-%d')  # Convert to string format
 
-fig = px.choropleth_mapbox(gdf,
-                           geojson=gdf.geometry,
-                           locations=gdf.index,
-                           color="t2m",  # This could be any numeric value you want to show
-                           hover_name="FID",
-                           animation_frame="time",  # Time-based animation
-                           color_continuous_scale="Viridis",  # Customize color scale
-                           mapbox_style="carto-positron",  # Map style
-                           title="Grid of Polygons with Time Slider")
+# Convert the GeoDataFrame to GeoJSON format
+geojson_data = gdf.to_json()
 
-fig.show()
+fig = px.choropleth(
+    gdf,
+    geojson=geojson_data,
+    locations=gdf.index,
+    color="t2m",
+    hover_name="FID",
+    animation_frame="time",  # Time-based animation
+    color_continuous_scale="Viridis",
+    title="Grid of Polygons with Time Slider"
+)
+
+fig.update_geos(fitbounds="locations")  # Optional: to make sure the map fits to the data bounds
+
+# Save the figure as an HTML file
+output_path = "./weather_animation.html"
+fig.write_html(output_path)
+
+# Optional: print path to file
+print(f"Animation saved to {output_path}")
+
 ```
