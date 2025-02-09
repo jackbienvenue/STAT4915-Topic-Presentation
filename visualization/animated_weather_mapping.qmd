@@ -25,6 +25,8 @@ shapefile_path = "../data/grid_cell_shapefile/grid_cells.shp"
 
     # Dataframe with weather data folder import:
 
+csv_folder_path = 'path_to_your_csv_folder'
+weather_data_gdfs = []
 
 ```
 
