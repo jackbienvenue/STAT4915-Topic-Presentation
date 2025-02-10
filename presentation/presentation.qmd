@@ -6,20 +6,42 @@ revealjs-theme: "simple"
 revealjs-transition: "fade" 
 highlight-style: "github"  
 footer: "Jack Bienvenue | STAT4915" 
-revealjs-slide-number: true 
+slide-number: true 
+---
+
+# Why Analyze Weather Data?
+
+---
+
+## Prediction
+
+---
+
+## Prevention
+
+---
+
+## Support
+
 ---
 
 # Sourcing Weather Data
 
 ---
 
-## Source: ECMWF
+## European Center for Medium-range Weather Forecasts
 
-ECMWF --> the European Center for Medium-range Weather Forecasting
+Widely used for academic studies in weather, hydrogology, and climatology research
 
-![alt text]("images/Hurricane_Models_Graphic.jpg")
+More options:
 
-For more weather data options, look to the National Weather Service, NASA, or the National Oceanic and Atmospheric Administration (NOAA).
+- National Weather Service, 
+- NASA, or 
+- National Oceanic and Atmospheric Administration (NOAA).
+
+## ECMWF
+
+![A Floridian news channel displaying the ECMWF & Global Forecast System's hurricane models during Hurricane Humberto, 2019. Source: *News 4 Jacksonville*](images/Hurricane_Models_Graphic.jpg)
 
 ---
 
@@ -35,18 +57,85 @@ The GRIB data type:
 
 ---
 
-## NASA GRIB File Viewer
+## Cleaning *.GRIB* Files
 
-NASA's *Panolpy*
+Peculiarities of *.GRIB* file processing:
+
+- Published as single files for any number of grid cells for set time interval
+- You may want the format as individual grid cells for a complete time series
+
+```{python}
+#| eval: false
+
+```
 
 ---
-
 
 # Building Animated Weather Maps in Python
 
 ---
 
-## Introducing the *Maplapse* package
+## GIS Skills: Cartography
+
+**Maps** include:
+
+- Title
+- Legend
+- Scale
+- Metadata
+    - Author
+    - Date
+    - Data Sources
+
+Not all python visualizations include these!
+
+---
+
+## GIS Skills: Coordinate Projections
+
+::::: {style="display: flex;"}
+
+:::: {.column1}
+
+::: {.section1}
+
+**Geographic Coordinate Systems**
+
+Describe points in terms of longitude and latitude, on the spherical surface of Earth
+
+The most common datum is the 1984 World Geodetic System (WGS84).
+
+The EPSG:4326 code is used as a python argument.
+
+:::
+
+::::
+
+:::: {.column2}
+
+::: {.section3}
+
+**Projected Coordinate Systems**
+
+Describe points in terms of cartesian coordinates. Must use tailor-fit PCS for your ROI.
+
+:::
+
+::: {.section4}
+
+**This is section 4**
+
+Hi
+
+:::
+
+::::
+
+:::::
+
+---
+
+## Mapping Package: 
 
 
 
@@ -54,4 +143,4 @@ NASA's *Panolpy*
 
 # Scholarly References
 
-# Image Credits
+# Image & Article Credits
