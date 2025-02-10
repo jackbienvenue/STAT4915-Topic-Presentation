@@ -2,21 +2,42 @@
 title: "Processing and Visualizing Weather Data"
 author: "Jack Bienvenue"
 format: revealjs
-revealjs-theme: "simple"   # optional, choose a theme
-revealjs-transition: "fade" # optional, choose a transition effect
-highlight-style: "github"  # optional, code highlighting style
-footer: "Jack Bienvenue | STAT4915" # optional, footer content
+revealjs-theme: "simple" 
+revealjs-transition: "fade" 
+highlight-style: "github"  
+footer: "Jack Bienvenue | STAT4915" 
+revealjs-slide-number: true 
 ---
 
 # Sourcing Weather Data
 
 ---
 
-## Source
+## Source: ECMWF
+
+ECMWF --> the European Center for Medium-range Weather Forecasting
+
+![alt text]("images/Hurricane_Models_Graphic.jpg")
+
+For more weather data options, look to the National Weather Service, NASA, or the National Oceanic and Atmospheric Administration (NOAA).
 
 ---
 
 ## A New File Type: "*.GRIB*"
+
+The GRIB data type:
+
+- Has existed in various iterations since 1985
+- Built for regular updating & dissemination for weather data
+- **GRI**dded **B**inary 
+    - "Low storage"
+    - Independent grid cell composition
+
+---
+
+## NASA GRIB File Viewer
+
+NASA's *Panolpy*
 
 ---
 
