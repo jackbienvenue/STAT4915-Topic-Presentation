@@ -463,11 +463,13 @@ Hi
 ## GIS Visualization Platforms:
 
 
-               | Python   | ArcGIS
----------------|----------|-----------
-Reproducibility|     X    |    
-Learning GIS   |          |    X
-WYSIWYG        |          |    X 
+|               | Python   | ArcGIS  |
+|---------------|----------|---------|
+| Reproducibility|     X    |         |
+| Learning GIS   |          |    X    |
+| WYSIWYG        |          |    X    |
+
+
 
 
 ---
