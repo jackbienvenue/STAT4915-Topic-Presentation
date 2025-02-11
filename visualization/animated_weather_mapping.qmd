@@ -16,115 +16,167 @@ import folium
 import os
 import plotly.express as px
 from shapely.geometry import Point
+from folium import features
 
 # File paths
-shapefile_path = "../data/grid_cell_shapefile/grid_cells.shp"
+shapefile_path = "../data/grid_cell_shapefile/andreas_jack_code_shapefile/era5_grid_registry.shp"
 csv_path = '../data/csv_for_input_into_viz.csv'
 
 # Load grid cells shapefile
-gdf_grid_cells = gpd.read_file(shapefile_path).to_crs("EPSG:26986")
+gdf_grid_cells = gpd.read_file(shapefile_path).to_crs("EPSG:4326")
 
 # Load the CSV with weather data
-gdf_all_weather = pd.read_csv(csv_path)
+df_all_weather = pd.read_csv(csv_path)
+# Convert 'time' column to datetime if it isn't already
+df_all_weather['time'] = pd.to_datetime(df_all_weather['time'])
 
-# Convert CSV to GeoDataFrame using latitude and longitude
-geometry = [Point(lon, lat) for lon, lat in zip(gdf_all_weather['longitude'], gdf_all_weather['latitude'])]
-gdf_all_weather = gpd.GeoDataFrame(gdf_all_weather, geometry=geometry, crs="EPSG:26986")
+# Now compare using datetime objects
+df_filtered = df_all_weather[(df_all_weather['time'] >= pd.to_datetime('2022-01-01')) & 
+                             (df_all_weather['time'] <= pd.to_datetime('2022-01-14'))]
 
+# Create a geometry column by applying Point to the latitude and longitude columns
+geometry = [Point(lon, lat) for lon, lat in zip(df_filtered['longitude'], df_filtered['latitude'])]
 
-# Perform a spatial join with grid cells (to merge weather data with grid cells)
-gdf_joined = gpd.sjoin(gdf_all_weather, gdf_grid_cells, how="left", predicate="within")
+# Convert the DataFrame to a GeoDataFrame
+gdf_filtered = gpd.GeoDataFrame(df_filtered, geometry=geometry)
 
-# Ensure 'time' is a datetime object, coercing errors
-gdf_joined['time'] = pd.to_datetime(gdf_joined['time'], errors='coerce')
+# Set the coordinate reference system (CRS), assuming it's in WGS84 (EPSG:4326)
+gdf_filtered = gdf_filtered.set_crs("EPSG:4326")
 
-# Drop rows where 'time' could not be converted
-gdf_joined = gdf_joined.dropna(subset=['time'])
+#print(gdf_grid_cells)
+```
 
-# Extract just the date part (without hours, minutes, seconds)
-gdf_joined['time'] = gdf_joined['time'].dt.date
+Now, let's merge the points into our new polygons:
 
-# Now, we can proceed with filtering based on the year and specific date range
-gdf_filtered = gdf_joined[gdf_joined['time'].apply(lambda x: 2020 <= x.year <= 2023)]
-gdf_filtered = gdf_filtered[(gdf_filtered['time'] >= pd.to_datetime('2022-01-01').date()) & 
-                             (gdf_filtered['time'] <= pd.to_datetime('2022-01-14').date())]
+``` {python}
+# Perform a spatial join to merge the points into the grid cells
+gdf_merged = gpd.sjoin(gdf_filtered, gdf_grid_cells, how="left", predicate='intersects')
 
-print(gdf_joined.head())
+#print(gdf_merged)
+```
 
-# Create a map centered around the data points
-def create_map(gdf, start_lat, start_lon, zoom_start=6):
-    # Create a folium map centered at an initial latitude and longitude
-    folium_map = folium.Map(location=[start_lat, start_lon], zoom_start=zoom_start)
-    
-    # Add markers for each weather data point in the GeoDataFrame
-    for _, row in gdf.iterrows():
-        folium.Marker(
-            location=[row['latitude'], row['longitude']],
-            popup=f"Date: {row['time']}\nTemperature: {row['t2m']}",  # Replace with relevant column name
-        ).add_to(folium_map)
-    
-    return folium_map
+Let's map it out now!
 
-# Set initial map location to the center of your area of interest
-start_lat, start_lon = gdf_filtered['latitude'].mean(), gdf_filtered['longitude'].mean()
+``` {python}
+import plotly.express as px
 
-# Create the map
-weather_map = create_map(gdf_filtered, start_lat, start_lon)
-weather_map.save('weather_map.html')
+# Step 1: Group by grid cell (using 'index_right') and time, then calculate the mean of 't2m' for each group
+agg_t2m = gdf_merged.groupby(['index_right', 'time'])['t2m'].mean().reset_index()
 
-# Convert 'time' to a string format directly (without using .dt accessor)
-gdf_filtered['time'] = gdf_filtered['time'].apply(lambda x: str(x))
+# Step 2: Merge the aggregated 't2m' values back into the grid cells GeoDataFrame
+# Use the index of gdf_grid_cells for merging
+gdf_grid_cells_agg = gdf_grid_cells.reset_index().merge(agg_t2m, left_on='index', right_on='index_right', how='left')
 
-# Now proceed with the animation part
-geojson_data = gdf_filtered.to_json()
+import plotly.express as px
 
+# Create the choropleth figure
 fig = px.choropleth(
-    gdf_filtered,
-    geojson=geojson_data,
-    locations=gdf_filtered.index,
-    color="t2m",
-    hover_name="FID",
-    #animation_frame="time",
-    color_continuous_scale="Viridis",
-    title="Grid of Polygons with Time Slider"
+    gdf_grid_cells_agg,
+    geojson=gdf_grid_cells_agg.geometry.__geo_interface__,  # Use the geometry for the map
+    locations=gdf_grid_cells_agg.index,  # Use the index of the grid cells for locations
+    color='t2m',  # The field to display (e.g., temperature)
+    hover_name='t2m',  # Hover text
+    animation_frame=gdf_grid_cells_agg['time'].dt.strftime('%Y-%m-%d'),  # Animation by time (formatted as Date)
+    color_continuous_scale="Viridis",  # Choose a color scale
+    range_color=[gdf_grid_cells_agg['t2m'].min(), gdf_grid_cells_agg['t2m'].max()],  # Set color range to the data min and max
+    labels={'t2m': 'Temperature (K)', 'time': 'Date'},  # Label customization
 )
 
-fig.update_geos(fitbounds="locations")
-fig.write_html('./weather_animation.html')
-print("Animation saved to ./weather_animation.html")
+# Update layout to improve the basemap, focus on Connecticut, and ensure proper orientation
+fig.update_layout(
+    geo=dict(
+        showcoastlines=True,  # Show coastlines
+        coastlinecolor="Black",  # Coastline color
+        showland=True,  # Show land
+        landcolor="LightGreen",  # Land color
+        showlakes=True,  # Show lakes
+        lakecolor="blue",  # Lake color
+        showocean=True,
+        oceancolor="LightBlue",
+        subunitcolor="gray",  # Subunit (state) color
+        countrycolor="gray",  # Country boundary color
+    ),
+    title="CT Nighttime Temperature - January 2022",  # Title for the map
+    mapbox=dict(
+        style="carto-positron",  # Use the high-quality OpenStreetMap basemap
+        center={"lat": 41.6032, "lon": -73.0877},  # Center on Connecticut
+        zoom=8,  # Adjust zoom level (higher values zoom in more)
+        bearing=0,  # Ensure the map faces north
+        pitch=0,  # No tilt, so the map remains level
+    ),
+    annotations=[
+        # Add the author
+        dict(
+            x=0.98,  # Position the annotation in the top-right corner
+            y=1.02,
+            xref="paper",  # Use relative position
+            yref="paper",
+            text="Author: Jack Bienvenue",
+            showarrow=False,
+            font=dict(size=12),
+            align="right",
+            borderpad=4,
+            bgcolor="rgba(255, 255, 255, 0.6)"
+        ),
+        # Add the metadata for data sources
+        dict(
+            x=0.98,
+            y=0.96,
+            xref="paper",
+            yref="paper",
+            text="Data Source: ECMWF",
+            showarrow=False,
+            font=dict(size=10),
+            align="right",
+            borderpad=4,
+            bgcolor="rgba(255, 255, 255, 0.6)"
+        )
+    ],
+    showlegend=True,  # Show the legend for color scale
+    coloraxis_colorbar=dict(
+        title="Temperature (K)",  # Title of the color scale
+        tickvals=[gdf_grid_cells_agg['t2m'].min(), gdf_grid_cells_agg['t2m'].max()],
+        ticktext=[f"{gdf_grid_cells_agg['t2m'].min():.2f}", f"{gdf_grid_cells_agg['t2m'].max():.2f}"],
+    )
+)
+
+# Show the plot
+fig.show()
+
+
+# Check for missing values in the merged dataframe
+#print(gdf_merged[gdf_merged['index_right'].isna()])
+#print(gdf_filtered['longitude'].min(), gdf_filtered['longitude'].max())
+#print(gdf_filtered['longitude'].unique())
 
 ```
 
-```{python}
+Map here?
+
+``` {python}
 import folium
-from folium.plugins import TimeSliderChoropleth
-import pandas as pd
-import geopandas as gpd
+from folium import plugins
 
-# Example: Assume gdf_filtered is already created
-# Convert the filtered GeoDataFrame to GeoJSON format
-geojson_data = gdf_filtered.to_json()
+# Create a map centered around Connecticut
+m = folium.Map(location=[41.6032, -73.0877], zoom_start=7)
 
-# Create a styledict for time slider choropleth
-# For simplicity, we're using a color scale based on 't2m' (temperature) for each time period
-styledict = {
-    str(date): {
-        'color': f'#{int((temp + 50) * 255 / 100):02x}{int((temp + 50) * 255 / 100):02x}00'
-    }
-    for date, temp in zip(gdf_filtered['time'].unique(), gdf_filtered['t2m'])
-}
+# Add the grid cells (polygons) to the map
+for _, row in gdf_grid_cells.iterrows():
+    folium.GeoJson(row['geometry'], style_function=lambda x: {
+        'fillColor': 'blue', 'color': 'blue', 'weight': 1, 'fillOpacity': 0.1}).add_to(m)
 
-# Calculate the center for the map (average latitude and longitude)
-latitude = gdf_filtered['latitude'].mean()
-longitude = gdf_filtered['longitude'].mean()
-
-# Create the map
-folium_map = folium.Map(location=[latitude, longitude], zoom_start=6)
-
-# Create the time slider choropleth and add it to the map
-TimeSliderChoropleth(geojson_data, styledict=styledict).add_to(folium_map)
+# Add the weather data points (as markers)
+for _, row in gdf_filtered.iterrows():
+    folium.CircleMarker(
+        location=[row['latitude'], row['longitude']],
+        radius=5,
+        color='red',
+        fill=True,
+        fill_color='red',
+        fill_opacity=0.7
+    ).add_to(m)
 
 # Display the map
-folium_map
+m
 
 ```
