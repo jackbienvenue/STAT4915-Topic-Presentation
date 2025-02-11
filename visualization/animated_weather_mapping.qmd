@@ -9,119 +9,122 @@ In this file, we will experiment with creating dynamic/ animated weather maps fo
 Let's begin by checking our grid cells and ensuring that they are loaded in properly:
 ``` {python}
 #| echo: false
-#| eval: true
-
-# Package Import:
 
 import pandas as pd
 import geopandas as gpd
-import matplotlib.pyplot as plt
+import folium
 import os
-from shapely.geometry import Point
 import plotly.express as px
-import folium # Printing maps for debugging stages
-from folium import GeoJson
+from shapely.geometry import Point
 
-# Data Connection:
-
-    # Shapefile import:
-
+# File paths
 shapefile_path = "../data/grid_cell_shapefile/grid_cells.shp"
-gdf_grid_cells = gpd.read_file(shapefile_path)
-gdf_grid_cells = gdf_grid_cells.to_crs("EPSG:26986")
+csv_path = '../data/csv_for_input_into_viz.csv'
 
-    # Dataframe with weather data folder import:
+# Load grid cells shapefile
+gdf_grid_cells = gpd.read_file(shapefile_path).to_crs("EPSG:26986")
 
-csv_folder_path = '../data/individual_csvs_daily'
-# Load grid cells shapefile once, outside the loop
-shapefile_path = "../data/grid_cell_shapefile/grid_cells.shp"
-gdf_grid_cells = gpd.read_file(shapefile_path)
-gdf_grid_cells = gdf_grid_cells.to_crs("EPSG:26986")
+# Load the CSV with weather data
+gdf_all_weather = pd.read_csv(csv_path)
 
-weather_data_gdfs = []
+# Convert CSV to GeoDataFrame using latitude and longitude
+geometry = [Point(lon, lat) for lon, lat in zip(gdf_all_weather['longitude'], gdf_all_weather['latitude'])]
+gdf_all_weather = gpd.GeoDataFrame(gdf_all_weather, geometry=geometry, crs="EPSG:26986")
 
 
-##### DEBUGGING CHECK - GRID CELL MAP:
+# Perform a spatial join with grid cells (to merge weather data with grid cells)
+gdf_joined = gpd.sjoin(gdf_all_weather, gdf_grid_cells, how="left", predicate="within")
 
-m = folium.Map(location=[41.6032, -73.0877], zoom_start=8)
-# Convert the grid cell GeoDataFrame to GeoJSON format
-geojson_data = gdf_grid_cells.to_json()
-# Add the GeoJSON data (grid cells) to the Folium map
-GeoJson(geojson_data, name="Grid Cells").add_to(m)
-# Optional: Add a layer control for toggling between different map layers
-folium.LayerControl().add_to(m)
-# Save the map to an HTML file
-m.save('grid_cells_CT_map.html')
-# To display the map in a Jupyter notebook (if running in one):
-m
-```
+# Ensure 'time' is a datetime object, coercing errors
+gdf_joined['time'] = pd.to_datetime(gdf_joined['time'], errors='coerce')
 
-# Iterate through the CSV files and load weather data
-for csv_file in os.listdir(csv_folder_path):
-    if csv_file.endswith('.csv'):
-        # Load the CSV
-        df = pd.read_csv(os.path.join(csv_folder_path, csv_file))
-        
-        # Create geometry (Point from lat/lon)
-        geometry = [Point(lon, lat) for lon, lat in zip(df['longitude'], df['latitude'])]
-        
-        # Convert to GeoDataFrame
-        gdf_weather = gpd.GeoDataFrame(df, geometry=geometry, crs="EPSG:26986")
-        
-        # Perform the spatial join only once
-        gdf_joined = gpd.sjoin(gdf_weather, gdf_grid_cells, how="left", predicate="within")
-        
-        # Add the joined GeoDataFrame to the list
-        weather_data_gdfs.append(gdf_joined)
+# Drop rows where 'time' could not be converted
+gdf_joined = gdf_joined.dropna(subset=['time'])
 
-# Concatenate all the joined dataframes into one
-gdf_all_weather = pd.concat(weather_data_gdfs, ignore_index=True)
+# Extract just the date part (without hours, minutes, seconds)
+gdf_joined['time'] = gdf_joined['time'].dt.date
 
-# Ensure 'time' column is in datetime format
-gdf_all_weather['time'] = pd.to_datetime(gdf_all_weather['time'], errors='coerce')
+# Now, we can proceed with filtering based on the year and specific date range
+gdf_filtered = gdf_joined[gdf_joined['time'].apply(lambda x: 2020 <= x.year <= 2023)]
+gdf_filtered = gdf_filtered[(gdf_filtered['time'] >= pd.to_datetime('2022-01-01').date()) & 
+                             (gdf_filtered['time'] <= pd.to_datetime('2022-01-14').date())]
 
-# Now you can apply the .dt accessor
-gdf = gdf_all_weather[(gdf_all_weather['time'].dt.year >= 2020) & (gdf_all_weather['time'].dt.year <= 2023)]
+print(gdf_joined.head())
 
-start_date = '2022-01-01'
-end_date = '2022-01-14'
+# Create a map centered around the data points
+def create_map(gdf, start_lat, start_lon, zoom_start=6):
+    # Create a folium map centered at an initial latitude and longitude
+    folium_map = folium.Map(location=[start_lat, start_lon], zoom_start=zoom_start)
+    
+    # Add markers for each weather data point in the GeoDataFrame
+    for _, row in gdf.iterrows():
+        folium.Marker(
+            location=[row['latitude'], row['longitude']],
+            popup=f"Date: {row['time']}\nTemperature: {row['t2m']}",  # Replace with relevant column name
+        ).add_to(folium_map)
+    
+    return folium_map
 
-gdf = gdf[(gdf_all_weather['time'] >= start_date) & (gdf_all_weather['time'] <= end_date)]
+# Set initial map location to the center of your area of interest
+start_lat, start_lon = gdf_filtered['latitude'].mean(), gdf_filtered['longitude'].mean()
 
-```
+# Create the map
+weather_map = create_map(gdf_filtered, start_lat, start_lon)
+weather_map.save('weather_map.html')
 
-Before we begin mapping, we have to perform a spatial join to unify the data we have about the weather trends with the shapefiles we have created for the grid cells which cover the state of Connecticut. 
+# Convert 'time' to a string format directly (without using .dt accessor)
+gdf_filtered['time'] = gdf_filtered['time'].apply(lambda x: str(x))
 
-Now, we can move onto mapping and building our animation!
-
-``` {python}
-#| echo: false
-#| eval: false
-
-# Convert the 'time' column to string to make it JSON serializable
-gdf['time'] = gdf['time'].dt.strftime('%Y-%m-%d')  # Convert to string format
-
-# Convert the GeoDataFrame to GeoJSON format
-geojson_data = gdf.to_json()
+# Now proceed with the animation part
+geojson_data = gdf_filtered.to_json()
 
 fig = px.choropleth(
-    gdf,
+    gdf_filtered,
     geojson=geojson_data,
-    locations=gdf.index,
+    locations=gdf_filtered.index,
     color="t2m",
     hover_name="FID",
-    animation_frame="time",  # Time-based animation
+    #animation_frame="time",
     color_continuous_scale="Viridis",
     title="Grid of Polygons with Time Slider"
 )
 
-fig.update_geos(fitbounds="locations")  # Optional: to make sure the map fits to the data bounds
+fig.update_geos(fitbounds="locations")
+fig.write_html('./weather_animation.html')
+print("Animation saved to ./weather_animation.html")
 
-# Save the figure as an HTML file
-output_path = "./weather_animation.html"
-fig.write_html(output_path)
+```
 
-# Optional: print path to file
-print(f"Animation saved to {output_path}")
+```{python}
+import folium
+from folium.plugins import TimeSliderChoropleth
+import pandas as pd
+import geopandas as gpd
+
+# Example: Assume gdf_filtered is already created
+# Convert the filtered GeoDataFrame to GeoJSON format
+geojson_data = gdf_filtered.to_json()
+
+# Create a styledict for time slider choropleth
+# For simplicity, we're using a color scale based on 't2m' (temperature) for each time period
+styledict = {
+    str(date): {
+        'color': f'#{int((temp + 50) * 255 / 100):02x}{int((temp + 50) * 255 / 100):02x}00'
+    }
+    for date, temp in zip(gdf_filtered['time'].unique(), gdf_filtered['t2m'])
+}
+
+# Calculate the center for the map (average latitude and longitude)
+latitude = gdf_filtered['latitude'].mean()
+longitude = gdf_filtered['longitude'].mean()
+
+# Create the map
+folium_map = folium.Map(location=[latitude, longitude], zoom_start=6)
+
+# Create the time slider choropleth and add it to the map
+TimeSliderChoropleth(geojson_data, styledict=styledict).add_to(folium_map)
+
+# Display the map
+folium_map
 
 ```
