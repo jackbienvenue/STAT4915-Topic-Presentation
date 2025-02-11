@@ -402,6 +402,13 @@ def grib_folder_processing(earliest_file, latest_file,
     export_dfs_to_csv(grouped, output_directory_path)
 ```
 
+---
+
+## *.GRIB* Geographic Structure
+
+<iframe src="./images/era5_grid_registry_map.html" width="100%" height="600px" frameborder="0" allowfullscreen></iframe>
+
+
 # Building Animated Weather Maps in Python
 
 ---
