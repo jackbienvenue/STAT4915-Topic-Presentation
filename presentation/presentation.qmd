@@ -20,10 +20,8 @@ slide-number: true
 
 Weather data analysis involves statistical data science skills:
 
-- Extreme Value Analysis
-- Visualization
-- Big Data Processing
-- Simulation & Resampling
+- Big Data Cleaning and Processing
+- Geospatial & Time Series Visualization
 
 ::::
 
@@ -48,6 +46,26 @@ Statistical Data Science & GIS techniques support:
 - Optimized grid resiliency infrastructure upgrades 
 - Climate change projections for storms
 - Optimization of disaster relief resource allocations
+
+<section class="centered-section">
+  <img src="images/gridshock.webp" class="centered-image">
+</section>
+
+<style>
+  .centered-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Optional: to center vertically on the whole page */
+  }
+
+  .centered-image {
+    width: 30%;
+    height: auto; /* Maintains aspect ratio */
+  }
+</style>
+
+
 
 ---
 
@@ -460,17 +478,37 @@ Hi
 :::::
 
 ---
+
 ## GIS Visualization Platforms:
 
 
-|               | Python   | ArcGIS  |
-|---------------|----------|---------|
-| Reproducibility|     X    |         |
-| Learning GIS   |          |    X    |
-| WYSIWYG        |          |    X    |
-
-
-
+<table border="1" style="width: 100%; text-align: center; vertical-align: middle;">
+  <tr>
+    <th></th>
+    <th>Python</th>
+    <th>ArcGIS</th>
+  </tr>
+  <tr>
+    <td style="vertical-align: middle;">Reproducibility</td>
+    <td><img src="images/checkmark.png" alt="checkmark" style="width: 60px; height: 60px;"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td style="vertical-align: middle;">Learning GIS</td>
+    <td></td>
+    <td><img src="images/checkmark.png" alt="checkmark" style="width: 60px; height: 60px;"></td>
+  </tr>
+  <tr>
+    <td style="vertical-align: middle;">WYSIWYG</td>
+    <td></td>
+    <td><img src="images/checkmark.png" alt="checkmark" style="width: 60px; height: 60px;"></td>
+  </tr>
+  <tr>
+    <td style="vertical-align: middle;">Free</td>
+    <td><img src="images/checkmark.png" alt="checkmark" style="width: 60px; height: 60px;"></td>
+    <td></td>
+  </tr>
+</table>
 
 ---
 
